@@ -1,4 +1,5 @@
 from BitVector import *
+import time
 
 Sbox = (
     0x63, 0x7C, 0x77, 0x7B, 0xF2, 0x6B, 0x6F, 0xC5, 0x30, 0x01, 0x67, 0x2B, 0xFE, 0xD7, 0xAB, 0x76,
@@ -65,6 +66,16 @@ def str2Hex(str):
     
     return hex_str
 
+def hex2Str(hex_str):
+    result_str = ''
+
+    for hex_value in hex_str:
+        char = chr(int(hex_value, 16))
+        result_str += char
+
+    return result_str
+
+
 def printHexStr(hex_arr):
     print("In HEX: ", end="")
 
@@ -77,6 +88,7 @@ def xorHex(a_hex, b_hex):
 
     a = BitVector(hexstring=a_hex)
     b = BitVector(hexstring=b_hex)
+
     
     # Convert hexadecimal strings to integers
     int_a = a.intValue()
@@ -90,7 +102,7 @@ def xorHex(a_hex, b_hex):
 
     return result_hex
 
-def xor2Words(w1, w2):
+def xorTwoWords(w1, w2):
     r_w = []
 
     for i in range(len(w1)):
@@ -102,8 +114,7 @@ def xor2Words(w1, w2):
 def circularByteLeftShift(w):
 
     cir_w = []
-    
-    # Shift all elements to the right by 1
+
     for i in range(1, len(w)):
         cir_w.append(w[i])
 
@@ -111,7 +122,7 @@ def circularByteLeftShift(w):
 
     return cir_w
 
-def byteSubstitution(w):
+def substituteBytes(w):
     bs_w = []
 
     for i in range(len(w)):
@@ -142,7 +153,7 @@ def addRoundConstant(w, r):
     
 def g(w, r):
     cir_w = circularByteLeftShift(w)
-    byte_w = byteSubstitution(cir_w)
+    byte_w = substituteBytes(cir_w)
     g_out = addRoundConstant(byte_w, r)
 
     return g_out
@@ -153,10 +164,10 @@ def getNextRoundKey(w, r):
     w0, w1, w2, w3 = w[:4], w[4:8], w[8:12], w[12:16]
 
     g_w = g(w3, r)
-    w4 = xor2Words(w0, g_w)
-    w5 = xor2Words(w4, w1)
-    w6 = xor2Words(w5, w2)
-    w7 = xor2Words(w6, w3)
+    w4 = xorTwoWords(w0, g_w)
+    w5 = xorTwoWords(w4, w1)
+    w6 = xorTwoWords(w5, w2)
+    w7 = xorTwoWords(w6, w3)
 
     # Concatenate w4, w5, w6, w7 to form n_w
     n_w = w4 + w5 + w6 + w7
@@ -178,6 +189,229 @@ def expandKeys(hex_key):
     return roundKeys
 
 
+def list2matrix(w):
+    matrix = [[0] * 4 for _ in range(4)]
+
+    for col in range(4):
+        for row in range(4):
+            matrix[row][col] = w[col*4 + row] 
+
+    return matrix
+
+def matrix2list(matrix):
+    l = []
+
+    for col in range(4):
+        for row in range(4):
+            l.append(matrix[row][col])
+
+    return l
+
+def addRoundKey(message, key):
+    matrix = []
+
+    for r in range(4):
+        row = []
+        for c in range(4):
+            row.append(xorHex(message[r][c], key[r][c]))
+        matrix.append(row)
+    
+    return matrix
+            
+
+def substituteByteMatrix(w, isEncryption):
+    bs_matrix = []
+
+ 
+    for r in range(4):
+        row = []
+        for c in range(4):
+            b = BitVector(hexstring=w[r][c])
+            int_val = b.intValue()
+
+            if isEncryption:
+                s = Sbox[int_val]
+            else:
+                s = InvSbox[int_val]
+
+            s = BitVector(intVal=s, size=8)
+            row.append(s.get_bitvector_in_hex())
+        bs_matrix.append(row)
+ 
+
+    return bs_matrix
+
+def circularLeftShift(w, shift_amount):
+    cir_w = w[shift_amount:] + w[:shift_amount]
+    return cir_w
+
+def shiftRow(w):
+    s_w = []
+
+    for i in range(4):
+        s_w.append(circularLeftShift(w[i], i))
+
+    return s_w
+
+def circularRightShift(w, shift_amount):
+    cir_w = w[-shift_amount:] + w[:-shift_amount]
+    return cir_w
+
+def invShiftRow(w):
+    s_w = []
+
+    for i in range(4):
+        s_w.append(circularRightShift(w[i], i))
+
+    return s_w
+
+def mixColumn(w, isEncryption):
+
+    result = [[BitVector(intVal=0, size=8) for _ in range(4)] for _ in range(4)]
+
+    AES_modulus = BitVector(bitstring='100011011')
+
+    for i in range(4):
+        for j in range(4):
+            for k in range(4):
+                
+                b = BitVector(hexstring=w[k][j])
+
+                # BitVector multiplicatiion instead of multiplication
+                if isEncryption:
+                    product = Mixer[i][k].gf_multiply_modular(b, AES_modulus, 8)
+                else:
+                    product = InvMixer[i][k].gf_multiply_modular(b, AES_modulus, 8)
+
+                # Bitwise XOR instead of addition
+                result[i][j] ^= product
+    
+    for i in range(4):
+        for j in range(4):
+            result[i][j] = result[i][j].get_bitvector_in_hex()
+
+    return result
+
+def blockEncrypt(hex_message, key):
+    
+    message_mat = list2matrix(hex_message)
+
+    hex_key = str2Hex(key)
+    key_mat = list2matrix(hex_key)
+
+
+    #INITIAL ROUND
+    # Key Expansion - initially done
+    
+
+    #Add Round key
+    state_mat = addRoundKey(message_mat, key_mat)
+
+    #MAIN BODY (9 ROUNDS)
+    for i in range(1, 10):
+        state_mat = substituteByteMatrix(state_mat, 1)
+
+        state_mat = shiftRow(state_mat)
+
+        state_mat = mixColumn(state_mat, 1)
+
+        key_mat_round = list2matrix(roundkeys[i])
+        state_mat = addRoundKey(state_mat, key_mat_round)
+    
+    #FINAL ROUND
+    state_mat = substituteByteMatrix(state_mat, 1)
+    state_mat = shiftRow(state_mat)
+    key_mat_final = list2matrix(roundkeys[10])
+    encrypted_mat = addRoundKey(state_mat, key_mat_final)
+
+    cypertext = matrix2list(encrypted_mat)
+
+    return cypertext
+
+
+def blockDecrypt(cypertext, key):
+
+    hex_key = str2Hex(key)
+    # hex_cyper_text = str2Hex(message)
+    hex_cyper_text = cypertext
+    cyper_mat = list2matrix(hex_cyper_text)
+
+    #INITIAL ROUND
+    # Key Expansion - initially done
+
+    key_mat = list2matrix(roundkeys[10])
+
+    state_mat = addRoundKey(cyper_mat, key_mat)
+    state_mat = invShiftRow(state_mat)
+    state_mat = substituteByteMatrix(state_mat, 0)
+
+    #MAIN BODY (9 ROUNDS)
+    for i in range(1, 10):
+        key_mat_round = list2matrix(roundkeys[10-i])
+        state_mat = addRoundKey(state_mat, key_mat_round)
+        
+        state_mat = mixColumn(state_mat, 0)
+
+        state_mat = invShiftRow(state_mat)
+
+        state_mat = substituteByteMatrix(state_mat, 0)
+
+    #FINAL ROUND
+    key_mat_final = list2matrix(roundkeys[0])
+    encrypted_mat = addRoundKey(state_mat, key_mat_final)
+
+    message = matrix2list(encrypted_mat)
+
+    return message
+
+
+
+def split_into_blocks(hex_plain_text, block_size=16):
+
+    # Split the hex_plain_text into blocks
+    blocks = [hex_plain_text[i:i+block_size] for i in range(0, len(hex_plain_text), block_size)]
+
+    return blocks
+
+
+def CBC_encryption(message, key, init_vector):
+    
+    hex_plain_text = str2Hex(message)
+    # divide hex_plain_text into blocks of each 16 elements. hex_plain_text is gauranteed to be in multiple of 16
+
+    hex_plaintext_blocks = split_into_blocks(hex_plain_text)
+
+    hex_cypertext = []
+
+    for i in range(len(hex_plaintext_blocks)):
+
+        text = xorTwoWords(hex_plaintext_blocks[i], init_vector)
+
+        cypertext = blockEncrypt(text, key)
+
+        hex_cypertext += cypertext
+
+        init_vector = cypertext
+
+    return hex_cypertext
+
+def CBC_decryption(hex_cypertext, key, init_vector):
+    
+    hex_cypertext_blocks = split_into_blocks(hex_cypertext)
+
+    hex_decryted = []
+
+    for i in range(len(hex_cypertext_blocks)):
+
+        hex_temp = blockDecrypt(hex_cypertext_blocks[i], key)
+
+        hex_message = xorTwoWords(hex_temp, init_vector)
+
+        hex_decryted += hex_message
+
+        init_vector = hex_cypertext_blocks[i]
+
+    return hex_decryted
 
 
 
@@ -185,59 +419,61 @@ def expandKeys(hex_key):
 
 
 print("Key:")
-# key = input("In ASCII: ")
-key = "Thats my Kung Fu"
+key = input("In ASCII: ")
+# key = "BUET CSE19 Batch"
 
-print(key)
-
-# Convert key into hex array and print as well
+# Convert key into hex array, add 00 as padding, take first 16 bytes and print as well
 hex_key = str2Hex(key)
+hex_key = hex_key[:16]
 printHexStr(hex_key)
 
+
 print("\nPlain Text:")
-# plain_text = input("In ASCII: ")
-plain_text = "Two One Nine Two"
+plain_text = input("In ASCII: ")
+# plain_text = "Never Gonna Give you up"
 
 # Convert plaint_text into hex array and print as well
 hex_plain_text = str2Hex(plain_text)
 printHexStr(hex_plain_text)
 
-# print(type(hex_plain_text[0]))  # str type
-
-# print(xorHex('b7', '01'))
-
-# w3 = ['67', '20', '46', '75']
-# # a = w3
-
-# cirW3 = circularByteLeftShift(w3)
-# print(cirW3)
 
 
-# bs = byteSubstitution(cirW3)
-# print(bs)
-
-# a = ['01', '00', '00', '00']
-# g_out = addRoundConstant(bs, a)
-# print(g_out)
-
-# g_w = g(w3)
-
-# print(g_w)
-
-# print(hex_key)
-
-# r1 = getNextRoundKey(hex_key)
-
-# print(r1)
-
-# r2 = getNextRoundKey(r1)
-
-# print(r2)
-
-
-
+#EXPAND KEYS
+start_time = time.time()
 roundkeys = expandKeys(hex_key)
+time_keySchedule = (time.time() - start_time) * 1000
 
-for i in range(11):
-    print("Round ", i, " : ", end="")
-    printHexStr(roundkeys[i])
+
+# ENCRYPTION
+init_vector = ['00']*16 
+
+start_time = time.time()
+hex_cypertext = CBC_encryption(plain_text, key, init_vector)
+time_encryption = (time.time() - start_time) * 1000
+
+print("\nCiphered Text:")
+printHexStr(hex_cypertext)
+message = hex2Str(hex_cypertext)
+print("In ASCII: ", end="")
+print(message)
+
+
+# DECRYPTION
+init_vector = ['00']*16 
+
+start_time = time.time()
+hex_decrypted = CBC_decryption(hex_cypertext, key, init_vector)
+time_decryption = (time.time() - start_time) * 1000
+
+print("\nDiciphered Text")
+printHexStr(hex_decrypted)
+message = hex2Str(hex_decrypted)
+print("In ASCII: ", end="")
+print(message)
+
+
+print("\nExecution Time Details:")
+print("Key Schedule Time: ", time_keySchedule, " ms")
+print("Encryption Time: ", time_encryption, " ms")
+print("Decryption Time: ", time_decryption, " ms")
+
