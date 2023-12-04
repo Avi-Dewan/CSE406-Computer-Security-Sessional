@@ -301,7 +301,8 @@ def blockEncrypt(hex_message, key):
 
 
     #INITIAL ROUND
-    # Key Expansion - initially done
+    # Key Expansion 
+    roundkeys = expandKeys(hex_key)
     
 
     #Add Round key
@@ -337,7 +338,8 @@ def blockDecrypt(cypertext, key):
     cyper_mat = list2matrix(hex_cyper_text)
 
     #INITIAL ROUND
-    # Key Expansion - initially done
+    # Key Expansion - 
+    roundkeys = expandKeys(hex_key)
 
     key_mat = list2matrix(roundkeys[10])
 

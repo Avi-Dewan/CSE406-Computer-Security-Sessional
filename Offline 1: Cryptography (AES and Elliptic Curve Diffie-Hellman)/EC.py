@@ -160,7 +160,7 @@ if __name__ == "__main__":
     headers = ["k (bits)", "", "Computation Time For", " "]
 
 
-    data_headers = [" ", "A", "B", "Shared Key R"]
+    data_headers = [" ", "A", "     B", "Shared Key R"]
 
     #for 128 bits
     time_A_128, time_B_128, time_R_128 = elliptic_curve_for_nBits(128)
