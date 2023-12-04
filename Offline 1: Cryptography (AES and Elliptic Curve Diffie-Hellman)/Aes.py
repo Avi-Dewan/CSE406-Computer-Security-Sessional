@@ -417,63 +417,64 @@ def CBC_decryption(hex_cypertext, key, init_vector):
 
 
 
+if __name__ == "__main__":
 
-print("Key:")
-key = input("In ASCII: ")
-# key = "BUET CSE19 Batch"
+    print("Key:")
+    key = input("In ASCII: ")
+    # key = "BUET CSE19 Batch"
 
-# Convert key into hex array, add 00 as padding, take first 16 bytes and print as well
-hex_key = str2Hex(key)
-hex_key = hex_key[:16]
-printHexStr(hex_key)
-
-
-print("\nPlain Text:")
-plain_text = input("In ASCII: ")
-# plain_text = "Never Gonna Give you up"
-
-# Convert plaint_text into hex array and print as well
-hex_plain_text = str2Hex(plain_text)
-printHexStr(hex_plain_text)
+    # Convert key into hex array, add 00 as padding, take first 16 bytes and print as well
+    hex_key = str2Hex(key)
+    hex_key = hex_key[:16]
+    printHexStr(hex_key)
 
 
+    print("\nPlain Text:")
+    plain_text = input("In ASCII: ")
+    # plain_text = "Never Gonna Give you up"
 
-#EXPAND KEYS
-start_time = time.time()
-roundkeys = expandKeys(hex_key)
-time_keySchedule = (time.time() - start_time) * 1000
-
-
-# ENCRYPTION
-init_vector = ['00']*16 
-
-start_time = time.time()
-hex_cypertext = CBC_encryption(plain_text, key, init_vector)
-time_encryption = (time.time() - start_time) * 1000
-
-print("\nCiphered Text:")
-printHexStr(hex_cypertext)
-message = hex2Str(hex_cypertext)
-print("In ASCII: ", end="")
-print(message)
+    # Convert plaint_text into hex array and print as well
+    hex_plain_text = str2Hex(plain_text)
+    printHexStr(hex_plain_text)
 
 
-# DECRYPTION
-init_vector = ['00']*16 
 
-start_time = time.time()
-hex_decrypted = CBC_decryption(hex_cypertext, key, init_vector)
-time_decryption = (time.time() - start_time) * 1000
-
-print("\nDiciphered Text")
-printHexStr(hex_decrypted)
-message = hex2Str(hex_decrypted)
-print("In ASCII: ", end="")
-print(message)
+    #EXPAND KEYS
+    start_time = time.time()
+    roundkeys = expandKeys(hex_key)
+    time_keySchedule = (time.time() - start_time) * 1000
 
 
-print("\nExecution Time Details:")
-print("Key Schedule Time: ", time_keySchedule, " ms")
-print("Encryption Time: ", time_encryption, " ms")
-print("Decryption Time: ", time_decryption, " ms")
+    # ENCRYPTION
+    init_vector = ['00']*16 
+
+    start_time = time.time()
+    hex_cypertext = CBC_encryption(plain_text, key, init_vector)
+    time_encryption = (time.time() - start_time) * 1000
+
+    print("\nCiphered Text:")
+    printHexStr(hex_cypertext)
+    message = hex2Str(hex_cypertext)
+    print("In ASCII: ", end="")
+    print(message)
+
+
+    # DECRYPTION
+    init_vector = ['00']*16 
+
+    start_time = time.time()
+    hex_decrypted = CBC_decryption(hex_cypertext, key, init_vector)
+    time_decryption = (time.time() - start_time) * 1000
+
+    print("\nDiciphered Text")
+    printHexStr(hex_decrypted)
+    message = hex2Str(hex_decrypted)
+    print("In ASCII: ", end="")
+    print(message)
+
+
+    print("\nExecution Time Details:")
+    print("Key Schedule Time: ", time_keySchedule, " ms")
+    print("Encryption Time: ", time_encryption, " ms")
+    print("Decryption Time: ", time_decryption, " ms")
 
