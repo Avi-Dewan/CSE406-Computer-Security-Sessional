@@ -1,7 +1,10 @@
 import socket
-import AES
-import EC
 import random
+import importlib
+
+AES = importlib.import_module("1905120_AES")
+EC = importlib.import_module("1905120_EC")
+
 
 # Create a socket object
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
