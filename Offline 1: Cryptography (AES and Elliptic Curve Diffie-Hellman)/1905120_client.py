@@ -40,7 +40,13 @@ print("\bGenerated AES by EC(Bob) : ", aesKey)
 hex_key = AES.str2Hex(str(aesKey))
 
 
-init_vector = ['00']*16 
+# receiving init_string
+message = client_socket.recv(1024)
+random_init_string = message.decode()
+
+# print(random_init_string)
+
+init_vector = AES.str2Hex(random_init_string)
 
 message = client_socket.recv(1024)
 received_message = message.decode()

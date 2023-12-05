@@ -1,6 +1,8 @@
 import socket
 import AES
 import EC
+import random
+
 # Create a socket object
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
@@ -53,7 +55,15 @@ plain_text = input("In ASCII: ")
 
 
 # ENCRYPTION
-init_vector = ['00']*16 
+
+# Generate a random 16-bit string, init_vector_string
+random_init_string = ''.join(chr(random.randint(33, 126)) for _ in range(16))
+init_vector = AES.str2Hex(random_init_string)
+
+# print(random_init_string)
+
+# sending init_vector
+client_socket.send(random_init_string.encode())
 
 hex_cypertext = AES.CBC_encryption(plain_text, str(aesKey), init_vector)
 
