@@ -1,0 +1,38 @@
+#
+
+connect: ssh -i SEED_VM_key.pem seed@52.140.122.5
+
+copy file: scp -i ./SEED_VM_key.pem Buffer_Overflow_Resources.zip seed@52.140.122.5:
+
+unzip x.zip
+
+
+# seed@avi
+
+hostname
+
+sudo su seed  # in our case we are already there
+
+### 
+
+sudo sysctl -w kernel.randomize_va_space=0
+sudo ln -sf /bin/zsh /bin/sh
+
+sudo touch badfile
+sudo gcc -m32 -o stack_dbg -g -z execstack -fno-stack-protector stack.c
+
+
+gdb stack_dbg
+
+b foo
+run
+next
+
+p $ebp  #stack based pointer  --> 0xffffd478
+p & buffer #buffer address -----> 0xffffd40b
+p /d 0x78-0xb = 109 --> 109 + 4 = 113
+
+
+sudo gcc -m32 -o stack -z execstack -fno-stack-protector stack.c
+sudo chown root stack
+sudo chmod 4755 stack

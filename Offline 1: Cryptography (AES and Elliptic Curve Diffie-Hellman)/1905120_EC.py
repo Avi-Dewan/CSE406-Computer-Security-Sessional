@@ -73,7 +73,7 @@ def multiply_point(g_x, g_y, a, b, P, k_pr):
     return k_pub_x, k_pub_y
 
 def generate_sharedParameter(nBits):
-    P = generate_P(128)
+    P = generate_P(nBits)
     a = generate_a(P)
     b = generate_b(a, P)
     g_x, g_y = generate_G(a, b, P)
